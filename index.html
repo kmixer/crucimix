@@ -1,0 +1,386 @@
+<!--
+CRUCIMIX v4.4 - SPAZIATURA INTELLIGENTE
+
+- 6 livelli
+- 10% incognite
+- "=" sempre visibile
+- logica equazioni
+- distanza minima 2 celle (no cluster)
+-->
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>CruciMix</title>
+
+<style>
+body {
+    font-family: Arial;
+    text-align: center;
+    background: #a8c0d6;
+}
+
+.grid {
+    display: grid;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.cell {
+    width: 50px;
+    height: 50px;
+    background: #f2d25c;
+    border-radius: 8px;
+    font-size: 18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+input {
+    width: 48px;
+    height: 48px;
+    text-align:center;
+    font-size:18px;
+    border-radius:8px;
+    border:2px solid #333;
+}
+
+input.error {
+    border: 2px solid red;
+    background: #ffb3b3;
+}
+
+.empty { visibility: hidden; }
+
+button {
+    margin-top:20px;
+    padding:10px 20px;
+    font-size:16px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>CruciMix</h1>
+<h2 id="level">Livello 1</h2>
+<div id="grid" class="grid"></div>
+<button onclick="controlla()">Controlla</button>
+
+<script>
+
+// =======================
+// LIVELLI
+// =======================
+
+const livelliCSV = [
+
+`1;+;9;=;10;;;;
++;;;;-;;;;
+5;;;;8;;;;
+=;;;;=;;;;
+6;-;4;=;2;+;7;=;9
++;;;;+;;;;-
+3;;;;3;;;;5
+=;;;;=;;;;=
+9;-;4;=;5;-;1;=;4`,
+
+`9;-;4;=;5;-;1;=;4;+;4;=;8
+-;;;;+;;;;+;;;;-
+3;;;;3;;;;1;;;;6
+=;;;;=;;;;=;;;;=
+6;+;2;=;8;-;3;=;5;-;3;=;2`,
+
+`5;+;4;=;9;;;;;;;;
++;;;;-;;;;;;;;
+5;;;;2;;;;;;;;
+=;;;;=;;;;;;;;
+10;-;3;=;7;;;;4;+;1;=;5
+-;;;;+;;;;+;;+;;-
+4;;;;1;;;;4;;5;;3
+=;;;;=;;;;=;;=;;=
+6;+;2;=;8;;;;8;-;6;=;2
++;;;;+;;;;-;;-;;+
+3;;;;2;;;;3;;3;;6
+=;;;;=;;;;=;;=;;=
+9;+;1;=;10;-;5;=;5;+;3;=;8
+;;;;-;;;;+;;;;
+;;;;7;;;;5;;;;
+;;;;=;;;;=;;;;
+;;;;3;+;7;=;10;;;;`,
+
+`;;;;1;+;4;=;5;+;5;=;10;;;;
+;;;;+;;;;-;;;;-;;;;
+;;;;5;;;;2;;;;3;;;;
+;;;;=;;;;=;;;;=;;;;
+8;-;2;=;6;-;3;=;3;+;4;=;7;+;2;=;9
+-;;;;+;;;;+;;;;+;;;;
+5;;;;4;;;;3;;;;1;;;;
+=;;;;=;;;;=;;;;=;;;;
+3;+;7;=;10;-;4;=;6;+;2;=;8;+;2;=;10
+-;;;;-;;;;-;;;;+;;;;-
+2;;;;3;;;;5;;;;1;;;;4
+=;;;;=;;;;=;;;;=;;;;=
+1;;;;7;-;6;=;1;+;8;=;9;;;;6`,
+
+`12;-;11;=;1;+;14;=;15;;;;;;;;
+-;;;;+;;;;+;;;;;;;;
+5;;;;7;;;;4;;;;;;;;
+=;;;;=;;;;=;;;;;;;;
+7;+;1;=;8;+;11;=;19;;;;;;;;
++;;;;+;;;;+;;;;;;;;
+6;;;;3;;;;1;;;;;;;;
+=;;;;=;;;;=;;;;;;;;
+13;-;2;=;11;+;9;=;20;-;8;=;12;+;3;=;15
++;;;;+;;;;-;;;;-;;;;+
+5;;;;5;;;;17;;;;2;;;;4
+=;;;;=;;;;=;;;;=;;;;=
+18;-;2;=;16;-;13;=;3;+;7;=;10;+;9;=;19`,
+
+`;;;;17;-;3;=;14;-;4;=;10;;;;
+;;;;+;;;;-;;;;+;;;;
+;;;;2;;;;11;;;;3;;;;
+;;;;=;;;;=;;;;=;;;;
+10;+;9;=;19;-;16;=;3;+;10;=;13;+;2;=;15
+-;;;;+;;;;+;;;;+;;;;-
+4;;;;1;;;;12;;;;1;;;;6
+=;;;;=;;;;=;;;;=;;;;=
+6;+;14;=;20;-;5;=;15;-;1;=;14;-;5;=;9
+;;;;-;;;;-;;;;+;;;;
+;;;;2;;;;7;;;;2;;;;
+;;;;=;;;;=;;;;=;;;;
+;;;;18;-;10;=;8;+;8;=;16;;;;`
+];
+
+// =======================
+// PARSE
+// =======================
+
+function parseCSV(csvText){
+    let rows = csvText.trim().split("\n").map(r=>r.split(";"));
+    let maxCols = Math.max(...rows.map(r=>r.length));
+    return rows.map(r=>{
+        while(r.length<maxCols) r.push("");
+        return r;
+    });
+}
+
+// =======================
+// TROVA EQUAZIONI
+// =======================
+
+function trovaEquazioni(grid){
+
+    let eqs=[];
+    let rows=grid.length;
+    let cols=grid[0].length;
+
+    function isNum(v){ return v && !isNaN(v); }
+
+    for(let r=0;r<rows;r++){
+        for(let c=0;c<cols-4;c++){
+            let a=grid[r][c];
+            let op=grid[r][c+1];
+            let b=grid[r][c+2];
+            let eq=grid[r][c+3];
+            let res=grid[r][c+4];
+
+            if(isNum(a)&&isNum(b)&&isNum(res)&&(op==="+"||op==="-" )&&eq==="="){
+                eqs.push({
+                    nums:[`${r}-${c}`,`${r}-${c+2}`,`${r}-${c+4}`],
+                    op:`${r}-${c+1}`
+                });
+            }
+        }
+    }
+
+    for(let c=0;c<cols;c++){
+        for(let r=0;r<rows-4;r++){
+            let a=grid[r][c];
+            let op=grid[r+1][c];
+            let b=grid[r+2][c];
+            let eq=grid[r+3][c];
+            let res=grid[r+4][c];
+
+            if(isNum(a)&&isNum(b)&&isNum(res)&&(op==="+"||op==="-" )&&eq==="="){
+                eqs.push({
+                    nums:[`${r}-${c}`,`${r+2}-${c}`,`${r+4}-${c}`],
+                    op:`${r+1}-${c}`
+                });
+            }
+        }
+    }
+
+    return eqs;
+}
+
+// =======================
+// CREA GRIGLIA
+// =======================
+
+let inputMap={};
+let livelloCorrente=0;
+
+function creaGriglia(){
+
+    const gridDiv=document.getElementById("grid");
+    gridDiv.innerHTML="";
+    inputMap={};
+
+    let soluzione=parseCSV(livelliCSV[livelloCorrente]);
+
+    let rows=soluzione.length;
+    let cols=soluzione[0].length;
+
+    gridDiv.style.gridTemplateColumns=`repeat(${cols},50px)`;
+
+    document.getElementById("level").innerText="Livello "+(livelloCorrente+1);
+
+    let eqs=trovaEquazioni(soluzione);
+
+    let hidden=new Set();
+
+    let target=Math.round(rows*cols*0.10);
+
+    function conta(list){
+        return list.filter(c=>hidden.has(c)).length;
+    }
+
+    // 🔥 REGOLA DISTANZA 2
+    function troppoVicino(r,c){
+
+        let check = [
+            [r,c-1],[r,c-2],
+            [r,c+1],[r,c+2],
+            [r-1,c],[r-2,c],
+            [r+1,c],[r+2,c]
+        ];
+
+        for(let [vr,vc] of check){
+            if(hidden.has(`${vr}-${vc}`)) return true;
+        }
+
+        return false;
+    }
+
+    let celle=[];
+
+    for(let r=0;r<rows;r++){
+        for(let c=0;c<cols;c++){
+            let v=soluzione[r][c];
+            if(v!=="" && v!=="="){
+                celle.push(`${r}-${c}`);
+            }
+        }
+    }
+
+    celle.sort(()=>Math.random()-0.5);
+
+    for(let coord of celle){
+
+        if(hidden.size>=target) break;
+
+        let [r,c]=coord.split("-").map(Number);
+
+        let ok=true;
+
+        for(let eq of eqs){
+
+            if(eq.nums.includes(coord)){
+                if(conta(eq.nums)>=2) ok=false;
+            }
+
+            if(eq.op===coord){
+                if(conta(eq.nums)!==1) ok=false;
+            }
+        }
+
+        if(ok && !troppoVicino(r,c)){
+            hidden.add(coord);
+        }
+    }
+
+    // render
+    for(let r=0;r<rows;r++){
+        for(let c=0;c<cols;c++){
+
+            let val=soluzione[r][c];
+
+            if(val===""){
+                let d=document.createElement("div");
+                d.className="cell empty";
+                gridDiv.appendChild(d);
+                continue;
+            }
+
+            if(val==="="){
+                let d=document.createElement("div");
+                d.className="cell";
+                d.innerText=val;
+                gridDiv.appendChild(d);
+                continue;
+            }
+
+            let key=`${r}-${c}`;
+
+            if(hidden.has(key)){
+                let inp=document.createElement("input");
+                inputMap[key]={valore:val,elemento:inp};
+                gridDiv.appendChild(inp);
+            }else{
+                let d=document.createElement("div");
+                d.className="cell";
+                d.innerText=val;
+                gridDiv.appendChild(d);
+            }
+        }
+    }
+}
+
+// =======================
+// CONTROLLO
+// =======================
+
+function controlla(){
+
+    let errore=false;
+
+    for(let k in inputMap){
+
+        let obj=inputMap[k];
+        let val=obj.elemento.value.trim();
+
+        obj.elemento.classList.remove("error");
+
+        if(val==="" || val!=obj.valore){
+            obj.elemento.classList.add("error");
+            errore=true;
+        }
+    }
+
+    if(errore){
+        alert("Controlla le celle rosse ❌");
+        return;
+    }
+
+    livelloCorrente++;
+
+    if(livelloCorrente<livelliCSV.length){
+        creaGriglia();
+    }else{
+        alert("Hai completato il gioco! 🏆");
+    }
+}
+
+// =======================
+// START
+// =======================
+
+creaGriglia();
+
+</script>
+</body>
+</html>
