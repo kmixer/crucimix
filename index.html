@@ -1,11 +1,9 @@
 <!--
-CRUCIMIX v6.4 - VERSIONE STABILE COMPLETA
+CRUCIMIX v7.1 - VERSIONE CONSOLIDATA
 
-- Input smart (numeri + operatori)
-- Suono vittoria ✔️
-- Suono errore ✔️
-- Fuochi + animazioni ✔️
-- Nessun bug popup
+- Base utente invariata
+- Fix stabilità audio
+- Nessuna perdita funzionalità
 -->
 
 <!DOCTYPE html>
@@ -30,7 +28,6 @@ input { box-sizing: border-box; }
     height: 10px;
     border-radius: 50%;
     animation: explode 0.8s ease-out forwards;
-    pointer-events: none;
 }
 
 @keyframes explode {
@@ -38,19 +35,17 @@ input { box-sizing: border-box; }
     100% { transform: scale(8); opacity:0; }
 }
 
-/* CELLE */
+/* ANIMAZIONE */
 .correct-cell {
     animation: popCell 0.3s ease;
     background: #7CFC00 !important;
 }
 
 @keyframes popCell {
-    0% { transform: scale(1); }
     50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
 }
 
-/* MATEMATICA */
+/* GRID */
 .grid {
     display: grid;
     gap: 6px;
@@ -63,44 +58,39 @@ input { box-sizing: border-box; }
     height: 50px;
     background: #f2d25c;
     border-radius: 8px;
-    font-size: 18px;
     display:flex;
     align-items:center;
     justify-content:center;
+    font-size:18px;
 }
 
 .input-cell {
     width: 48px;
     height: 48px;
     text-align:center;
-    font-size:18px;
     border-radius:8px;
     border:2px solid #333;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:0;
+    font-size:18px;
 }
 
-/* PAROLE */
 .row { margin: 10px; }
 
 .letter {
     width: 40px;
     height: 40px;
     margin: 2px;
-    text-align: center;
-    font-size: 20px;
-    border-radius: 6px;
+    text-align:center;
+    font-size:20px;
+    border-radius:6px;
     border:2px solid #333;
 }
 
 input.error {
-    border: 2px solid red;
-    background: #ffb3b3;
+    border:2px solid red;
+    background:#ffb3b3;
 }
 
-.empty { visibility: hidden; }
+.empty { visibility:hidden; }
 
 button {
     margin-top:20px;
@@ -108,40 +98,54 @@ button {
     font-size:16px;
 }
 
-#definizioni {
-    margin-top:15px;
-    font-size:16px;
-}
+#definizioni { margin-top:15px; }
 </style>
 </head>
 
 <body>
 
 <h1>CruciMix</h1>
-<h2 id="level">Livello 1</h2>
+<h2 id="level"></h2>
 
 <div id="definizioni"></div>
 <div id="grid"></div>
 
-<button onclick="controlla()">Controlla</button>
+<button onclick="sbloccaAudio(); controlla()">Controlla</button>
 
 <script>
 
 // =======================
-// SUONI (STABILI)
+// 🔊 SUONI LOCALI
 // =======================
 
-const suonoWin = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
-const suonoErrore = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_8b5b8c1d3c.mp3");
+const suonoWin = new Audio("sounds/win.mp3");
+const suonoErrore = new Audio("sounds/error.wav");
 
-suonoWin.load();
-suonoErrore.load();
+let audioSbloccato=false;
+
+function sbloccaAudio(){
+    if(audioSbloccato) return;
+
+    // sblocco silenzioso
+    suonoWin.play().then(()=>{
+        suonoWin.pause();
+        suonoWin.currentTime=0;
+    }).catch(()=>{});
+
+    suonoErrore.play().then(()=>{
+        suonoErrore.pause();
+        suonoErrore.currentTime=0;
+    }).catch(()=>{});
+
+    audioSbloccato=true;
+}
 
 // =======================
-// DATI (TUOI)
+// DATI MATH
 // =======================
 
 const baseMath = [
+
 `1;+;9;=;10;;;;
 +;;;;-;;;;
 5;;;;8;;;;
@@ -156,32 +160,92 @@ const baseMath = [
 -;;;;+;;;;+;;;;-
 3;;;;3;;;;1;;;;6
 =;;;;=;;;;=;;;;=
-6;+;2;=;8;-;3;=;5;-;3;=;2`
+6;+;2;=;8;-;3;=;5;-;3;=;2`,
+
+`5;+;4;=;9;;;;;;;;
++;;;;-;;;;;;;;
+5;;;;2;;;;;;;;
+=;;;;=;;;;;;;;
+10;-;3;=;7;-;3;=;4;+;1;=;5
+-;;;;+;;;;+;;+;;-
+4;;;;1;;;;4;;5;;3
+=;;;;=;;;;=;;=;;=
+6;+;2;=;8;;;;8;-;6;=;2`,
+
+`1;+;4;=;5;+;5;=;10
++;;;;-;;;;-
+5;;;;2;;;;3
+=;;;;=;;;;=
+6;-;3;=;3;+;4;=;7
++;;;;+;;;;+
+4;;;;3;;;;1
+=;;;;=;;;;=
+10;;;;6;;;;8`,
+
+`12;-;11;=;1;+;14;=;15
+-;;;;+;;;;+
+5;;;;7;;;;4
+=;;;;=;;;;=
+7;+;1;=;8;+;11;=;19`,
+
+`17;-;3;=;14;-;4;=;10
++;;;;-;;;;+
+2;;;;11;;;;3
+=;;;;=;;;;=
+19;;;;3;;;;13`
+
 ];
+
+// =======================
+// PAROLE
+// =======================
 
 const livelliParole = [
 {def:["Animale che abbaia","Colore del cielo"],sol:["CANE","BLU"]},
-{def:["Animale che miagola","Veicolo a ruote e pedali"],sol:["GATTO","BICI"]}
+{def:["Animale che miagola","Veicolo a ruote e pedali"],sol:["GATTO","BICI"]},
+{def:["Si usa per scrivere","Bevanda calda"],sol:["PENNA","TE"]},
+{def:["Frutto giallo","Animale come Jerry"],sol:["BANANA","TOPO"]},
+{def:["Colore del sole","Animale da corsa"],sol:["GIALLO","CAVALLO"]},
+{def:["Cibo italiano rotondo famoso","Oggetto per chiamare"],sol:["PIZZA","TELEFONO"]},
+{def:["Insetto che fa il miele","Animale della fattoria"],sol:["APE","MUCCA"]},
+{def:["Si beve al mattino","Dolce al cioccolato"],sol:["LATTE","TORTA"]},
+{def:["Animale con guscio molto lento","Colore della neve"],sol:["TARTARUGA","BIANCO"]},
+{def:["Animale che salta di colore verde","Frutto rosso"],sol:["RANA","MELA"]},
+{def:["Oggetto per scrivere","Il re della Savana"],sol:["MATITA","LEONE"]},
+{def:["Frutto estivo","Esce dal rubinetto"],sol:["ANGURIA","ACQUA"]},
+{def:["Animale domestico","Suono del cane"],sol:["CANE","BAU"]},
+{def:["Animale veloce","Colore della notte"],sol:["GHEPARDO","NERO"]},
+{def:["Strumento musicale con tasti bianchi e neri","Frutto dolce"],sol:["PIANOFORTE","PERA"]},
+{def:["Animale marino enorme","Si apre per studiare"],sol:["BALENA","LIBRO"]},
+{def:["Cibo che si taglia a metà e si farcisce","Animale da corsa"],sol:["PANE","CAVALLO"]},
+{def:["Contenitore per i libri di scuola","Insetto piccolo fortissimo"],sol:["ZAINO","FORMICA"]},
+{def:["Frutto viola con cui si fa il vino","Animale lento"],sol:["UVA","LUMACA"]},
+{def:["Dolce italiano estivo","Animale con la proboscide"],sol:["GELATO","ELEFANTE"]},
+{def:["Animale domestico che miagola","Colore dell'erba"],sol:["GATTO","VERDE"]},
+{def:["Oggetto su cui si pranza","Animale di Pasqua"],sol:["TAVOLO","CONIGLIO"]},
+{def:["Cibo italiano che si mangia al sugo","Animale marino celebre nei film"],sol:["PASTA","SQUALO"]},
+{def:["Animale con ali","Colore del cielo quando fa brutto tempo"],sol:["UCCELLO","GRIGIO"]},
+{def:["Frutto giallo","Animale domestico che fa la guardia"],sol:["BANANA","CANE"]}
 ];
 
 // =======================
 // VARIABILI
 // =======================
 
-let livelloCorrente = 0;
-let modalità = "";
-let inputMap = {};
-let soluzione = [];
+let livelloCorrente=0;
+let modalità="";
+let inputMap={};
+let soluzione=[];
 
 // =======================
-// FUNZIONI BASE
+// PARSE
 // =======================
 
 function parseCSV(csvText){
-    let rows = csvText.trim().split(/\r?\n/).map(r=>r.split(";"));
-    let maxCols = Math.max(...rows.map(r => r.length));
+    let rows=csvText.trim().split(/\r?\n/).map(r=>r.split(";"));
+    let max=Math.max(...rows.map(r=>r.length));
     return rows.map(r=>{
-        while(r.length < maxCols) r.push("");
+        while(r.length<max) r.push("");
         return r;
     });
 }
@@ -191,18 +255,13 @@ function parseCSV(csvText){
 // =======================
 
 function fuochi(){
-
     for(let i=0;i<12;i++){
-
-        let f = document.createElement("div");
-        f.className = "firework";
-
-        f.style.left = Math.random()*100 + "%";
-        f.style.top = Math.random()*100 + "%";
-        f.style.background = `hsl(${Math.random()*360},100%,50%)`;
-
+        let f=document.createElement("div");
+        f.className="firework";
+        f.style.left=Math.random()*100+"%";
+        f.style.top=Math.random()*100+"%";
+        f.style.background=`hsl(${Math.random()*360},100%,50%)`;
         document.body.appendChild(f);
-
         setTimeout(()=>f.remove(),800);
     }
 }
@@ -213,19 +272,16 @@ function fuochi(){
 
 function creaGriglia(){
 
-    inputMap = {};
-    document.getElementById("definizioni").innerHTML = "";
+    inputMap={};
+    document.getElementById("definizioni").innerHTML="";
 
-    modalità = Math.random() < 0.5 ? "math" : "parole";
+    modalità=Math.random()<0.5?"math":"parole";
 
-    if(modalità === "math"){
-        creaMath();
-    } else {
-        creaParole();
-    }
+    if(modalità==="math") creaMath();
+    else creaParole();
 
-    document.getElementById("level").innerText =
-        "Livello " + (livelloCorrente + 1) + " (" + modalità + ")";
+    document.getElementById("level").innerText=
+    "Livello "+(livelloCorrente+1)+" ("+modalità+")";
 }
 
 // =======================
@@ -234,16 +290,16 @@ function creaGriglia(){
 
 function creaMath(){
 
-    const gridDiv = document.getElementById("grid");
-    gridDiv.innerHTML = "";
-    gridDiv.className = "grid";
+    const grid=document.getElementById("grid");
+    grid.innerHTML="";
+    grid.className="grid";
 
-    soluzione = parseCSV(baseMath[livelloCorrente % baseMath.length]);
+    soluzione=parseCSV(baseMath[livelloCorrente % baseMath.length]);
 
-    let rows = soluzione.length;
-    let cols = soluzione[0].length;
+    let rows=soluzione.length;
+    let cols=soluzione[0].length;
 
-    gridDiv.style.gridTemplateColumns = `repeat(${cols},50px)`;
+    grid.style.gridTemplateColumns=`repeat(${cols},50px)`;
 
     for(let r=0;r<rows;r++){
         for(let c=0;c<cols;c++){
@@ -253,7 +309,7 @@ function creaMath(){
             if(val===""){
                 let d=document.createElement("div");
                 d.className="cell empty";
-                gridDiv.appendChild(d);
+                grid.appendChild(d);
                 continue;
             }
 
@@ -261,37 +317,37 @@ function creaMath(){
                 let d=document.createElement("div");
                 d.className="cell";
                 d.innerText=val;
-                gridDiv.appendChild(d);
+                grid.appendChild(d);
                 continue;
             }
 
-            if(Math.random()<0.2){
+            if(Math.random()<0.15){
 
                 let inp=document.createElement("input");
                 inp.className="input-cell";
-                inp.maxLength = 2;
+                inp.maxLength=2;
 
                 inp.addEventListener("input",function(){
 
-                    this.value = this.value.replace(/[^0-9+\-]/g,"");
+                    this.value=this.value.replace(/[^0-9+\-]/g,"");
 
-                    if(this.value.includes("+") || this.value.includes("-")){
-                        this.value = this.value.replace(/[^+\-]/g,"");
-                        this.maxLength = 1;
-                    } else {
-                        this.maxLength = 2;
+                    if(this.value.includes("+")||this.value.includes("-")){
+                        this.value=this.value.replace(/[^+\-]/g,"");
+                        this.maxLength=1;
+                    }else{
+                        this.maxLength=2;
                     }
 
                 });
 
                 inputMap[`${r}-${c}`]={valore:val,elemento:inp};
-                gridDiv.appendChild(inp);
+                grid.appendChild(inp);
 
             }else{
                 let d=document.createElement("div");
                 d.className="cell";
                 d.innerText=val;
-                gridDiv.appendChild(d);
+                grid.appendChild(d);
             }
         }
     }
@@ -303,29 +359,26 @@ function creaMath(){
 
 function creaParole(){
 
-    const grid = document.getElementById("grid");
-    grid.innerHTML = "";
-    grid.className = "";
+    const grid=document.getElementById("grid");
+    grid.innerHTML="";
+    grid.className="";
 
-    let livello = livelliParole[livelloCorrente % livelliParole.length];
+    let livello=livelliParole[livelloCorrente % livelliParole.length];
 
-    let html = "";
-    livello.def.forEach((d,i)=>{
-        html += (i+1)+". "+d+"<br>";
-    });
-
-    document.getElementById("definizioni").innerHTML = html;
+    let html="";
+    livello.def.forEach((d,i)=> html+=(i+1)+". "+d+"<br>");
+    document.getElementById("definizioni").innerHTML=html;
 
     livello.sol.forEach((parola,i)=>{
 
-        let row = document.createElement("div");
-        row.className = "row";
+        let row=document.createElement("div");
+        row.className="row";
 
         for(let j=0;j<parola.length;j++){
 
-            let inp = document.createElement("input");
-            inp.className = "letter";
-            inp.maxLength = 1;
+            let inp=document.createElement("input");
+            inp.className="letter";
+            inp.maxLength=1;
 
             inputMap[`${i}-${j}`]={valore:parola[j],elemento:inp};
 
@@ -345,14 +398,10 @@ function creaParole(){
 }
 
 // =======================
-// CONTROLLO (FIX SUONI)
+// CONTROLLO
 // =======================
 
 function controlla(){
-
-	suonoErrore.play().catch(()=>{});
-	suonoErrore.pause();
-	suonoErrore.currentTime = 0;
 
     let errore=false;
 
@@ -363,7 +412,7 @@ function controlla(){
 
         obj.elemento.classList.remove("error");
 
-        if(val==="" || val!=obj.valore){
+        if(val!==obj.valore){
             obj.elemento.classList.add("error");
             errore=true;
         }
@@ -371,17 +420,21 @@ function controlla(){
 
     if(errore){
 
-        // 🔊 SUONO ERRORE
-        suonoErrore.currentTime = 0;
-        suonoErrore.play();
+        try{
+            suonoErrore.currentTime=0;
+            suonoErrore.play();
+        }catch(e){}
+
+        if(navigator.vibrate){
+            navigator.vibrate([200,100,200]);
+        }
 
         return;
     }
 
-    // 🎆 SUCCESSO
     fuochi();
 
-    suonoWin.currentTime = 0;
+    suonoWin.currentTime=0;
     suonoWin.play();
 
     for(let k in inputMap){
